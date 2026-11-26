@@ -1,31 +1,44 @@
+import os
+import certifi
 import openpyxl
 import mysql.connector
+from dotenv import load_dotenv
 
-# ── Configuration ────────────────────────────────────
+load_dotenv()
+
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "Godson204",   
-    "database": "marine_ai"
+    "host": os.environ["DB_HOST"],
+    "port": int(os.environ.get("DB_PORT", 4000)),
+    "user": os.environ["DB_USER"],
+    "password": os.environ["DB_PASSWORD"],
+    "database": os.environ["DB_NAME"],
+    "ssl_ca": certifi.where(),
+    "ssl_verify_cert": True,
 }
 
-EXCEL_FILE = "marine_ai_insights_dataset.xlsx"   
-SHEET_NAME = "Sheet1"
-
-# ── Connect to MySQL ─────────────────────────────────
-print("Connecting to MySQL...")
 conn = mysql.connector.connect(**DB_CONFIG)
 cursor = conn.cursor()
 
-# ── Load Excel File ──────────────────────────────────
-print(f"Loading {EXCEL_FILE}...")
-wb = openpyxl.load_workbook(EXCEL_FILE)
-ws = wb[SHEET_NAME]
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS marine_data (
+    id                      INT AUTO_INCREMENT PRIMARY KEY,
+    dates                   DATE,
+    location                VARCHAR(100),
+    state                   VARCHAR(100),
+    species                 TEXT,
+    avg_daily_production    FLOAT,
+    latitude                FLOAT,
+    longitude               FLOAT,
+    sea_surface_temperature FLOAT,
+    salinity                FLOAT,
+    wind_speed              FLOAT,
+    wave_height             FLOAT
+)
+""")
+cursor.execute("TRUNCATE TABLE marine_data")
 
-total_rows = ws.max_row - 1
-print(f"Found {total_rows} data rows. Importing...")
+ws = openpyxl.load_workbook("marine_ai_insights_dataset.xlsx")["Sheet1"]
 
-# ── Insert Rows ──────────────────────────────────────
 inserted = 0
 for row in ws.iter_rows(min_row=2, values_only=True):
     cursor.execute("""
@@ -37,7 +50,6 @@ for row in ws.iter_rows(min_row=2, values_only=True):
     inserted += 1
 
 conn.commit()
-print(f"✅ Successfully imported {inserted} rows into marine_data table.")
-
+print(f"✅ Imported {inserted} rows.")
 cursor.close()
 conn.close()

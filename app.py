@@ -1,6 +1,9 @@
+import os
+import certifi
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import mysql.connector
+from dotenv import load_dotenv
 from model import (
     run_linear_regression,
     run_anomaly_detection,
@@ -8,15 +11,20 @@ from model import (
     run_forecast
 )
 
+load_dotenv()
+
 app = Flask(__name__)
 CORS(app)
 
-# ── Database Configuration ──────────────────────────
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "Godson204",   
-    "database": "marine_ai"
+    "host": os.environ["DB_HOST"],
+    "port": int(os.environ.get("DB_PORT", 4000)),
+    "user": os.environ["DB_USER"],
+    "password": os.environ["DB_PASSWORD"],
+    "database": os.environ["DB_NAME"],
+    "ssl_ca": certifi.where(),
+    "ssl_verify_cert": True,
+    "connection_timeout": 10,
 }
 
 def get_db():

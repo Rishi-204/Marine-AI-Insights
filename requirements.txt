@@ -4,3 +4,5 @@ mysql-connector-python
 openpyxl
 scikit-learn
 numpy
+python-dotenv
+certifi
